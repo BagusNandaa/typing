@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readShowHands, writeShowHands } from "./handsSetting";
   import Keyboard from "./Keyboard.svelte";
   import {
     advance,
@@ -16,6 +17,7 @@
   let lessonIndex = $state(0);
   let cursor = $state(0);
   let wrong = $state(false);
+  let showHands = $state(readShowHands());
   let actionButton = $state<HTMLButtonElement | null>(null);
 
   const lesson = $derived(lessonAt(lessonIndex));
@@ -32,6 +34,13 @@
       ? { id: "Tombol berikutnya", en: "Next key" }
       : { id: "Huruf berikutnya", en: "Next letter" },
   );
+
+  function onHandsToggle(event: Event): void {
+    const input = event.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    showHands = input.checked;
+    writeShowHands(showHands);
+  }
 
   function press(char: string): void {
     if (done) return;
@@ -133,8 +142,14 @@
     {/if}
   </p>
 
+  <label class="hands-toggle">
+    <input type="checkbox" checked={showHands} onchange={onHandsToggle} />
+    Tampilkan tangan
+    <span class="secondary" lang="en">/ Show hands</span>
+  </label>
+
   <div class="stage">
-    <Keyboard nextChar={expected} {done} onPress={press} />
+    <Keyboard nextChar={expected} {done} {showHands} onPress={press} />
   </div>
 
   <p class="home-hint">

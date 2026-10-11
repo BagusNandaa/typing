@@ -211,11 +211,13 @@ export function keyAnchor(key: {
 }
 
 const BOARD_W = PAD_X + ROW_INNER + PAD_X;
-const BOARD_H = PAD_Y + 4 * ROW_STEP + KEY_H + 58;
+const KEYS_H = PAD_Y + 4 * ROW_STEP + KEY_H;
+const BOARD_H = KEYS_H + 58;
 
 export const board = {
   width: BOARD_W,
   height: BOARD_H,
+  keysHeight: KEYS_H,
   keys,
 };
 

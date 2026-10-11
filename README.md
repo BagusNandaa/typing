@@ -2,7 +2,7 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and a hand guide shows which finger to use. IndexedDB progress and the result screen come later.
+The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. IndexedDB progress and the result screen come later.
 
 ## Target
 
@@ -13,7 +13,7 @@ The app should eventually be one self-contained HTML file that opens by double-c
 The first drill is Bahasa Indonesia: `asdf jkl;` (home row, including space). The second is the English word `salad`. The third is the capital word `Halo`, which lights the letter and the Shift key on the other hand.
 
 - The lit key uses the accent color, an ink outline, and the words "huruf berikutnya". F and J have a thick bottom border so the home bumps are not color alone.
-- Two hands are drawn as one inline SVG and sit on top of the keyboard. The drawing is original line art: a light skin fill, a thin outline, and an accent glow on the reaching fingertip. Fingertips rest on the home row and the wrists run off the bottom of the keyboard. Only the pose for the next key is shown; the other hand stays in its resting pose. Space puts both thumbs on the space bar. A capital letter shows the letter hand and the opposite Shift hand together.
+- The hand drawing is experimental. It is off by default, so the screen shows the keyboard, the lit key, and the finger name. **Tampilkan tangan / Show hands** turns the drawing on, and the choice is saved in the browser. When it is on, two hands are one inline SVG of original line art over the keys: a light skin fill, a thin outline, and an accent glow on the reaching fingertip. Fingertips rest on the home row and the wrists run off the bottom of the keyboard. Only the pose for the next key is shown; the other hand stays in its resting pose. Space puts both thumbs on the space bar. A capital letter shows the letter hand and the opposite Shift hand together.
 - The coach names the finger in Bahasa Indonesia first (`jari kelingking kiri`, and the same pattern for the other fingers; thumbs are `ibu jari`), then English.
 - Instructions and keys are at least 20px. Paint stays cheap: no canvas, WebGL, shadow, or filter. The pose change is an opacity transition, and only when the system allows motion.
 - On a 1366×768 screen the hands, the lit key, and the home-row hint fit together. A 1280×720 window fits the same screen.

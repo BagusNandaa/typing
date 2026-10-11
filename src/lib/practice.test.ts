@@ -147,6 +147,21 @@ function activeFingerIds(): string[] {
   );
 }
 
+function handsToggle(): HTMLInputElement {
+  const input = document.querySelector(".hands-toggle input");
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error("Missing hands toggle");
+  }
+  return input;
+}
+
+async function setHands(show: boolean): Promise<void> {
+  const input = handsToggle();
+  if (input.checked === show) return;
+  input.click();
+  await tick();
+}
+
 async function typeChar(char: string): Promise<void> {
   window.dispatchEvent(
     new KeyboardEvent("keydown", {
@@ -204,6 +219,7 @@ describe("home screen", () => {
     await cleanup?.();
     cleanup = undefined;
     document.body.replaceChildren();
+    localStorage.clear();
   });
 
   function mountApp(): void {
@@ -223,18 +239,14 @@ describe("home screen", () => {
     mountApp();
     expect(document.querySelector("canvas")).toBeNull();
     expect(document.querySelector("svg image")).toBeNull();
-    expect(document.querySelector("svg.hands-svg")).not.toBeNull();
+    expect(handsToggle().checked).toBe(false);
+    expect(document.querySelector("svg.hands-svg")).toBeNull();
+    expect(document.body.textContent).toContain("Tampilkan tangan");
+    expect(document.body.textContent).toContain("Show hands");
     expect(document.querySelector("a.skip")?.getAttribute("href")).toBe(
       "#practice",
     );
     expect(currentChar()).toBe("a");
-    expect(
-      document.querySelector('g.pose.active[data-pose="a"]'),
-    ).not.toBeNull();
-    expect(
-      document.querySelector('g.pose.active[data-pose="rest-right"]'),
-    ).not.toBeNull();
-    expect(activeFingerIds()).toEqual(["left-pinky"]);
     expect(document.body.textContent).toContain("jari kelingking kiri");
     expect(
       document.querySelector('[aria-current="true"]')?.textContent,
@@ -260,8 +272,36 @@ describe("home screen", () => {
     await expectAccessible();
   });
 
+  it("remembers when the experimental hands are turned on", async () => {
+    mountApp();
+    expect(document.querySelector("svg.hands-svg")).toBeNull();
+
+    await setHands(true);
+    expect(localStorage.getItem("mengetik-show-hands")).toBe("1");
+    expect(
+      document.querySelector('g.pose.active[data-pose="a"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('g.pose.active[data-pose="rest-right"]'),
+    ).not.toBeNull();
+    expect(activeFingerIds()).toEqual(["left-pinky"]);
+    await expectAccessible();
+
+    await cleanup?.();
+    mountApp();
+    expect(handsToggle().checked).toBe(true);
+    expect(document.querySelector("svg.hands-svg")).not.toBeNull();
+
+    await setHands(false);
+    expect(localStorage.getItem("mengetik-show-hands")).toBe("0");
+    expect(document.querySelector("svg.hands-svg")).toBeNull();
+    expect(document.body.textContent).toContain("jari kelingking kiri");
+    await expectAccessible();
+  });
+
   it("walks the Indonesian home row, then the English word", async () => {
     mountApp();
+    await setHands(true);
     expect(document.body.textContent).toContain("Tekan tombol yang menyala");
     expect(
       document.querySelector(".prompt + .secondary")?.getAttribute("lang"),

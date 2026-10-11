@@ -5,10 +5,12 @@
   let {
     nextChar,
     done,
+    showHands,
     onPress,
   }: {
     nextChar: string;
     done: boolean;
+    showHands: boolean;
     onPress: (char: string) => void;
   } = $props();
 
@@ -25,7 +27,7 @@
 <div
   class="board"
   style:width="{board.width}px"
-  style:height="{board.height}px"
+  style:height="{showHands ? board.height : board.keysHeight}px"
   role="group"
   aria-label="Papan ketik QWERTY"
 >
@@ -59,5 +61,7 @@
       {/if}
     </button>
   {/each}
-  <HandGuide activePoses={poses} />
+  {#if showHands}
+    <HandGuide activePoses={poses} />
+  {/if}
 </div>
