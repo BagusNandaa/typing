@@ -1,3 +1,4 @@
+import { createHandPoses } from "./hands";
 import type { FingerId } from "./typing";
 
 /**
@@ -32,33 +33,6 @@ export type PlacedKey = {
   h: number;
   fingers: readonly FingerId[];
   home?: boolean;
-};
-
-export type Ellipse = {
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-};
-
-export type FingerStroke = {
-  id: FingerId;
-  d: string;
-  x2: number;
-  y2: number;
-  hot: boolean;
-};
-
-export type HandDraw = {
-  side: "left" | "right";
-  palm: Ellipse;
-  heel: Ellipse;
-  strokes: readonly FingerStroke[];
-};
-
-export type PoseDraw = {
-  id: string;
-  hands: readonly HandDraw[];
 };
 
 type Spec = {
@@ -223,196 +197,29 @@ for (const key of keys) {
   if (key.char !== "") keyByChar.set(key.char, key);
 }
 
-function mustKey(id: string): PlacedKey {
-  const key = keyById.get(id);
-  if (!key) throw new Error(`Missing key ${id}`);
-  return key;
-}
-
-/** Where a fingertip rests on a key: bottom center, so the label stays readable. */
-export function keyAnchor(key: PlacedKey): Point {
+/** Fingertip rest point: center of the key, on the key face. */
+export function keyAnchor(key: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}): Point {
   return {
     x: Math.round((key.x + key.w / 2) * 10) / 10,
-    y: Math.round((key.y + key.h - 7) * 10) / 10,
+    y: Math.round((key.y + key.h * 0.58) * 10) / 10,
   };
 }
 
-function round1(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-function curve(start: Point, end: Point, bend: number): string {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const cx = round1((start.x + end.x) / 2 + (-dy / len) * bend);
-  const cy = round1((start.y + end.y) / 2 + (dx / len) * bend);
-  return `M ${round1(start.x)} ${round1(start.y)} Q ${cx} ${cy} ${round1(end.x)} ${round1(end.y)}`;
-}
-
-const LEFT_FINGERS = [finger.lp, finger.lr, finger.lm, finger.li] as const;
-const RIGHT_FINGERS = [finger.ri, finger.rm, finger.rr, finger.rp] as const;
-const LEFT_HOMES = ["a", "s", "d", "f"] as const;
-const RIGHT_HOMES = ["j", "k", "l", ";"] as const;
-
-const spaceKey = mustKey("space");
-
-function homeAnchors(side: "left" | "right"): Point[] {
-  const homes = side === "left" ? LEFT_HOMES : RIGHT_HOMES;
-  return homes.map((id) => keyAnchor(mustKey(id)));
-}
-
-function restThumb(side: "left" | "right"): Point {
-  const y = round1(spaceKey.y + spaceKey.h * 0.72);
-  if (side === "left") return { x: round1(spaceKey.x - 18), y };
-  return { x: round1(spaceKey.x + spaceKey.w + 18), y };
-}
-
-function spaceThumb(side: "left" | "right"): Point {
-  const along = side === "left" ? 0.36 : 0.64;
-  return {
-    x: round1(spaceKey.x + spaceKey.w * along),
-    y: round1(spaceKey.y + spaceKey.h * 0.55),
-  };
-}
-
-function buildHand(
-  side: "left" | "right",
-  reach: { id: FingerId; tip: Point } | null,
-  thumbTip: Point,
-  thumbHot: boolean,
-): HandDraw {
-  const homes = homeAnchors(side);
-  const first = homes[0];
-  const last = homes[3];
-  if (!first || !last) throw new Error("Home anchors");
-  const span = Math.abs(last.x - first.x);
-  const cx = (first.x + last.x) / 2;
-  const rx = span * 0.56 + 10;
-  const ry = 34;
-  const cy = spaceKey.y + spaceKey.h + 4;
-  const lifts = side === "left" ? [12, 4, -8, 0] : [0, -8, 4, 12];
-  const owners = side === "left" ? LEFT_FINGERS : RIGHT_FINGERS;
-  const spread = span / 3.4;
-  const bendSign = side === "left" ? -1 : 1;
-
-  const strokes: FingerStroke[] = owners.map((id, index) => {
-    const home = homes[index];
-    if (!home) throw new Error(id);
-    const hot = reach?.id === id;
-    const tip = hot && reach ? reach.tip : home;
-    const lift = lifts[index] ?? 0;
-    const knuckle = {
-      x: cx + (index - 1.5) * spread,
-      y: cy - ry + lift,
-    };
-    return {
-      id,
-      d: curve(knuckle, tip, bendSign * (hot ? 4 : 8)),
-      x2: tip.x,
-      y2: tip.y,
-      hot,
-    };
-  });
-
-  const thumbBase = {
-    x: cx + (side === "left" ? 1 : -1) * rx * 0.62,
-    y: cy + 4,
-  };
-  strokes.push({
-    id: side === "left" ? finger.lt : finger.rt,
-    d: curve(thumbBase, thumbTip, bendSign * -16),
-    x2: thumbTip.x,
-    y2: thumbTip.y,
-    hot: thumbHot,
-  });
-
-  return {
-    side,
-    palm: { cx: round1(cx), cy: round1(cy), rx: round1(rx), ry },
-    heel: {
-      cx: round1(cx),
-      cy: round1(cy + ry * 0.22),
-      rx: round1(rx * 0.68),
-      ry: round1(ry * 0.46),
-    },
-    strokes,
-  };
-}
-
-function poseFor(key: PlacedKey): PoseDraw {
-  if (key.id === "space") {
-    return {
-      id: "space",
-      hands: [
-        buildHand("left", null, spaceThumb("left"), true),
-        buildHand("right", null, spaceThumb("right"), true),
-      ],
-    };
-  }
-  const owner = key.fingers[0];
-  if (!owner) throw new Error(key.id);
-  const side = owner.startsWith("left") ? "left" : "right";
-  return {
-    id: key.id,
-    hands: [
-      buildHand(
-        side,
-        { id: owner, tip: keyAnchor(key) },
-        restThumb(side),
-        false,
-      ),
-    ],
-  };
-}
-
-const drawn = [
-  {
-    id: "rest-left",
-    hands: [buildHand("left", null, restThumb("left"), false)],
-  },
-  {
-    id: "rest-right",
-    hands: [buildHand("right", null, restThumb("right"), false)],
-  },
-  ...keys.map(poseFor),
-] satisfies readonly PoseDraw[];
-
-function artExtent(poses: readonly PoseDraw[]): {
-  width: number;
-  height: number;
-} {
-  let maxX = PAD_X + ROW_INNER + PAD_X;
-  let maxY = 0;
-  for (const pose of poses) {
-    for (const hand of pose.hands) {
-      maxX = Math.max(
-        maxX,
-        hand.palm.cx + hand.palm.rx,
-        hand.heel.cx + hand.heel.rx,
-      );
-      maxY = Math.max(maxY, hand.heel.cy + hand.heel.ry);
-      for (const stroke of hand.strokes) {
-        maxX = Math.max(maxX, stroke.x2);
-        maxY = Math.max(maxY, stroke.y2);
-      }
-    }
-  }
-  return {
-    width: Math.ceil(maxX + 24),
-    height: Math.ceil(maxY + 12),
-  };
-}
-
-const extent = artExtent(drawn);
+const BOARD_W = PAD_X + ROW_INNER + PAD_X;
+const BOARD_H = PAD_Y + 4 * ROW_STEP + KEY_H + 58;
 
 export const board = {
-  width: extent.width,
-  height: extent.height,
+  width: BOARD_W,
+  height: BOARD_H,
   keys,
 };
 
-export const poseArt: readonly PoseDraw[] = drawn;
+export const poseArt = createHandPoses(keys, keyAnchor);
 
 export function keyFor(char: string): PlacedKey | undefined {
   return keyByChar.get(char.toLowerCase());

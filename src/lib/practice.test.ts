@@ -101,8 +101,8 @@ describe("display budget", () => {
         "#fffdf8",
         "#e4d9c8",
         "#0f6e6e",
-        "#f3d5c4",
-        "#8d7368",
+        "#a68474",
+        "#3e322c",
       ]),
     );
   });

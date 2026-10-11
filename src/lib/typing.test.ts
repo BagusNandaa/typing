@@ -147,14 +147,18 @@ describe("hand poses", () => {
     }
 
     const poseA = poseArt.find((pose) => pose.id === "a");
+    const poseQ = poseArt.find((pose) => pose.id === "q");
     const keyA = board.keys.find((key) => key.id === "a");
     const keyS = board.keys.find((key) => key.id === "s");
-    if (!poseA || !keyA || !keyS) throw new Error("Missing A pose");
-    const pinky = poseA.hands[0]?.strokes.find(
-      (stroke) => stroke.id === "left-pinky",
+    if (!poseA || !poseQ || !keyA || !keyS) throw new Error("Missing A pose");
+    const pinky = poseA.hands[0]?.fingers.find(
+      (digit) => digit.id === "left-pinky",
     );
-    const ring = poseA.hands[0]?.strokes.find(
-      (stroke) => stroke.id === "left-ring",
+    const ring = poseA.hands[0]?.fingers.find(
+      (digit) => digit.id === "left-ring",
+    );
+    const reachingQ = poseQ.hands[0]?.fingers.find(
+      (digit) => digit.id === "left-pinky",
     );
     expect(pinky?.hot).toBe(true);
     expect(pinky?.x2).toBe(keyAnchor(keyA).x);
@@ -162,17 +166,19 @@ describe("hand poses", () => {
     expect(ring?.hot).toBe(false);
     expect(ring?.x2).toBe(keyAnchor(keyS).x);
     expect(ring?.y2).toBe(keyAnchor(keyS).y);
+    expect(pinky?.proximal).toBe(reachingQ?.proximal);
+    expect(pinky?.transform).not.toBe(reachingQ?.transform);
+    expect(pinky?.transform).toContain("rotate");
+    expect(poseA.hands[0]?.palm).toContain("C");
 
     for (const pose of poseArt) {
       for (const hand of pose.hands) {
-        expect(hand.palm.cx - hand.palm.rx).toBeGreaterThanOrEqual(0);
-        expect(hand.palm.cx + hand.palm.rx).toBeLessThanOrEqual(board.width);
-        expect(hand.heel.cy + hand.heel.ry).toBeLessThanOrEqual(board.height);
-        for (const stroke of hand.strokes) {
-          expect(stroke.x2).toBeGreaterThanOrEqual(0);
-          expect(stroke.x2).toBeLessThanOrEqual(board.width);
-          expect(stroke.y2).toBeGreaterThanOrEqual(0);
-          expect(stroke.y2).toBeLessThanOrEqual(board.height);
+        expect(hand.wristY).toBeGreaterThan(board.height);
+        for (const digit of hand.fingers) {
+          expect(digit.x2).toBeGreaterThanOrEqual(0);
+          expect(digit.x2).toBeLessThanOrEqual(board.width);
+          expect(digit.y2).toBeGreaterThanOrEqual(0);
+          expect(digit.y2).toBeLessThanOrEqual(board.height);
         }
       }
     }

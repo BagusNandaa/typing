@@ -18,36 +18,59 @@
       data-pose={pose.id}
     >
       {#each pose.hands as hand (hand.side)}
-        <ellipse
-          class="hand-palm"
-          cx={hand.palm.cx}
-          cy={hand.palm.cy}
-          rx={hand.palm.rx}
-          ry={hand.palm.ry}
-        />
-        <ellipse
-          class="hand-heel"
-          cx={hand.heel.cx}
-          cy={hand.heel.cy}
-          rx={hand.heel.rx}
-          ry={hand.heel.ry}
-        />
-        {#each hand.strokes as stroke (stroke.id)}
-          <path class="hand-limb outline" d={stroke.d} />
-          <path class="hand-limb fill" d={stroke.d} />
-          <circle class="hand-pad" cx={stroke.x2} cy={stroke.y2} r="8" />
-          {#if stroke.hot}
-            <circle class="glow-ring" cx={stroke.x2} cy={stroke.y2} r="18" />
-            <circle
-              class="glow-core"
-              class:active={activePoses.includes(pose.id)}
-              data-finger={stroke.id}
-              cx={stroke.x2}
-              cy={stroke.y2}
-              r="8"
-            />
-          {/if}
-        {/each}
+        <g transform={hand.transform}>
+          <g class="hand-fills">
+            {#each hand.fingers as finger (finger.id)}
+              {#if finger.root}
+                <g transform={finger.transform}>
+                  <path class="hand-fill" d={finger.root} />
+                </g>
+              {/if}
+            {/each}
+            {#each hand.fingers as finger (finger.id)}
+              <g transform={finger.transform}>
+                <path class="hand-fill" d={finger.proximal} />
+                <g transform={finger.distalTransform}>
+                  <path class="hand-fill" d={finger.distal} />
+                </g>
+              </g>
+            {/each}
+            <path class="hand-fill" d={hand.palm} />
+          </g>
+          <g class="hand-lines">
+            <path class="hand-line" d={hand.palmLine} />
+            <path class="hand-crease" d={hand.tendons} />
+            {#each hand.fingers as finger (finger.id)}
+              <g transform={finger.transform}>
+                {#if finger.rootLine}
+                  <path class="hand-line" d={finger.rootLine} />
+                {/if}
+                <path class="hand-line" d={finger.proximalLine} />
+                <path class="hand-crease" d={finger.knuckleCrease} />
+                <g transform={finger.distalTransform}>
+                  <path class="hand-line" d={finger.distalLine} />
+                  <path class="hand-crease" d={finger.creases} />
+                  <path class="hand-nail" d={finger.nail} />
+                </g>
+              </g>
+            {/each}
+          </g>
+          {#each hand.fingers as finger (finger.id)}
+            {#if finger.hot}
+              <g transform={finger.transform}>
+                <ellipse
+                  class="glow"
+                  class:active={activePoses.includes(pose.id)}
+                  data-finger={finger.id}
+                  cx={finger.glowX}
+                  cy={finger.glowY}
+                  rx="15"
+                  ry="11"
+                />
+              </g>
+            {/if}
+          {/each}
+        </g>
       {/each}
     </g>
   {/each}
