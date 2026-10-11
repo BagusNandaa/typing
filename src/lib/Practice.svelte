@@ -134,8 +134,10 @@
     {/if}
   </p>
 
-  <HandGuide activeFingers={fingerIds} />
-  <Keyboard nextChar={expected} {done} onPress={press} />
+  <div class="stage">
+    <HandGuide activeFingers={fingerIds} />
+    <Keyboard nextChar={expected} {done} onPress={press} />
+  </div>
 
   <p class="home-hint">
     Garis tebal di F dan J adalah rumah telunjuk.
