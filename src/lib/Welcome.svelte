@@ -4,4 +4,4 @@
   let { language = "id" }: { language?: LessonLanguage } = $props();
 </script>
 
-<p class="greeting">{greeting(language)}</p>
+<p class="greeting" lang={language}>{greeting(language)}</p>

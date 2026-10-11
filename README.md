@@ -2,11 +2,21 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-This repository is the scaffold. Lessons, IndexedDB progress, and the result screen come later.
+The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and a hand guide shows which finger to use. IndexedDB progress and the result screen come later.
 
 ## Target
 
 The app should eventually be one self-contained HTML file that opens by double-click on a low-end Windows PC, with no install and no network. That single-file build is the next task. It is not produced yet. `pnpm build` currently writes a normal Vite bundle to `dist/`.
+
+## Keyboard practice
+
+The first drill is Bahasa Indonesia: `asdf jkl;` (home row, including space). The second is the English word `salad`.
+
+- The lit key uses the accent color, an ink outline, and the words "huruf berikutnya". F and J have a thick bottom border so the home bumps are not color alone.
+- The hand guide lights that finger and names it in Bahasa Indonesia, then English. Space lights both thumbs.
+- Instructions and keys are at least 20px. A highlight is a background and outline change only: no canvas, WebGL, shadow, filter, or animation, so a low-end laptop does not have to repaint effects.
+
+`pnpm test` runs Vitest, including an axe-core check of the home screen.
 
 ## Requirements
 
@@ -32,14 +42,14 @@ pnpm dev
 
 ## Scripts
 
-| Script               | What it runs             |
-| -------------------- | ------------------------ |
-| `pnpm run lint`      | ESLint                   |
-| `pnpm run format`    | Prettier (writes files)  |
-| `pnpm run typecheck` | `svelte-check` and `tsc` |
-| `pnpm run test`      | Vitest, once             |
-| `pnpm run dev`       | Vite+ dev server         |
-| `pnpm run build`     | Vite+ production build   |
+| Script               | What it runs                     |
+| -------------------- | -------------------------------- |
+| `pnpm run lint`      | ESLint                           |
+| `pnpm run format`    | Prettier (writes files)          |
+| `pnpm run typecheck` | `svelte-check` and `tsc`         |
+| `pnpm run test`      | Vitest, once, including axe-core |
+| `pnpm run dev`       | Vite+ dev server                 |
+| `pnpm run build`     | Vite+ production build           |
 
 ## CI
 
