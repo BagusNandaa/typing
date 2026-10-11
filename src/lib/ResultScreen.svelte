@@ -26,9 +26,11 @@
   const dateId = $derived(formatAttemptDate(attempt.createdAt, "id-ID"));
   const dateEn = $derived(formatAttemptDate(attempt.createdAt, "en-US"));
   const sourceLine = $derived(
-    attempt.source === "starter"
-      ? { id: "Kalimat awal", en: "Starter sentence" }
-      : { id: "Huruf lambat", en: "Slow keys" },
+    attempt.source === "slow-keys"
+      ? { id: "Huruf lambat", en: "Slow keys" }
+      : attempt.source === "lesson"
+        ? { id: "Latihan jari", en: "Finger practice" }
+        : { id: "Kalimat awal", en: "Starter sentence" },
   );
 
   function printCard(): void {

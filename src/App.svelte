@@ -1,43 +1,31 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import DrillPad from "./lib/DrillPad.svelte";
+  import Practice from "./lib/Practice.svelte";
   import ResultScreen from "./lib/ResultScreen.svelte";
   import Welcome from "./lib/Welcome.svelte";
-  import {
-    starterPrompt,
-    type Attempt,
-    type AttemptSource,
-    type LessonLanguage,
-  } from "./lib/attempt";
+  import { type Attempt, type LessonLanguage } from "./lib/attempt";
   import { addAttempt, listAttempts } from "./lib/attempts-db";
 
-  type View =
-    | { name: "home" }
-    | {
-        name: "drill";
-        prompt: string;
-        source: AttemptSource;
-        language: LessonLanguage;
-      }
-    | {
-        name: "result";
-        attempt: Attempt;
-        attemptNumber: number;
-        saved: boolean;
-      };
+  type Drill = {
+    prompt: string;
+    language: LessonLanguage;
+  };
 
-  let view = $state<View>({ name: "home" });
+  type ResultView = {
+    attempt: Attempt;
+    attemptNumber: number;
+    saved: boolean;
+  };
+
+  let view = $state<"home" | "result">("home");
+  let drill = $state<Drill | null>(null);
+  let result = $state<ResultView | null>(null);
   let history = $state<Attempt[]>([]);
-  let historyLoaded = $state(false);
   let storageProblem = $state(false);
 
   $effect(() => {
     document.title =
-      view.name === "result"
-        ? "Kartu hasil — Mengetik Kids"
-        : view.name === "drill"
-          ? "Latihan — Mengetik Kids"
-          : "Mengetik Kids";
+      view === "result" ? "Kartu hasil — Mengetik Kids" : "Mengetik Kids";
   });
 
   onMount(() => {
@@ -45,36 +33,26 @@
   });
 
   async function refreshHistory(): Promise<void> {
+    if (typeof indexedDB === "undefined") {
+      storageProblem = true;
+      return;
+    }
     try {
       history = await listAttempts();
     } catch {
       storageProblem = true;
-    } finally {
-      historyLoaded = true;
     }
   }
 
-  function startStarter(): void {
-    view = {
-      name: "drill",
-      prompt: starterPrompt(),
-      source: "starter",
-      language: "id",
-    };
+  function showStored(
+    attempt: Attempt,
+    attemptNumber: number,
+    saved: boolean,
+  ): void {
+    result = { attempt, attemptNumber, saved };
   }
 
-  function showLatest(): void {
-    const latest = history.at(-1);
-    if (!latest) return;
-    view = {
-      name: "result",
-      attempt: latest,
-      attemptNumber: history.length,
-      saved: true,
-    };
-  }
-
-  async function onComplete(attempt: Attempt): Promise<void> {
+  async function handleAttempt(attempt: Attempt): Promise<void> {
     let saved = true;
     try {
       await addAttempt(attempt);
@@ -84,77 +62,81 @@
     }
 
     try {
-      history = await listAttempts();
+      if (typeof indexedDB !== "undefined") history = await listAttempts();
     } catch {
       storageProblem = true;
     }
-    historyLoaded = true;
-
     const storedIndex = history.findIndex((item) => item.id === attempt.id);
-    view = {
-      name: "result",
-      attempt,
-      attemptNumber: storedIndex >= 0 ? storedIndex + 1 : history.length + 1,
-      saved,
-    };
+    const attemptNumber =
+      storedIndex >= 0 ? storedIndex + 1 : history.length + 1;
+    showStored(attempt, attemptNumber, saved);
+    if (attempt.source === "slow-keys") {
+      drill = null;
+      view = "result";
+    }
   }
 
-  function onPractice(prompt: string): void {
-    const language = view.name === "result" ? view.attempt.language : "id";
-    view = { name: "drill", prompt, source: "slow-keys", language };
+  function startDrill(prompt: string): void {
+    drill = { prompt, language: result?.attempt.language ?? "id" };
+    view = "home";
+  }
+
+  function openSaved(): void {
+    if (result) {
+      view = "result";
+      return;
+    }
+    const latest = history.at(-1);
+    if (!latest) return;
+    showStored(latest, history.length, true);
+    view = "result";
   }
 
   function goHome(): void {
-    view = { name: "home" };
+    drill = null;
+    view = "home";
   }
 </script>
 
-<main class:wide={view.name !== "home"}>
-  {#if view.name === "home"}
+<main class:wide={view === "result"}>
+  <div class:is-hidden={view === "result"}>
+    <a class="skip" href="#practice">Langsung ke latihan</a>
     <p class="eyebrow">Sekolah dasar · QWERTY</p>
     <h1>Mengetik Kids</h1>
-    <Welcome />
-    <Welcome language="en" />
-    <div class="action-row">
-      <button class="action-primary" type="button" onclick={startStarter}>
-        <span lang="id">Mulai latihan</span>
-        <span lang="en">Start practice</span>
-      </button>
-      {#if historyLoaded && history.length > 0}
-        <button class="action-secondary" type="button" onclick={showLatest}>
-          <span lang="id">Lihat hasil terakhir</span>
-          <span lang="en">See the last result</span>
-        </button>
-      {/if}
+    <div class="greetings">
+      <Welcome />
+      <Welcome language="en" />
     </div>
+    <Practice
+      prompt={drill?.prompt}
+      source={drill ? "slow-keys" : "lesson"}
+      language={drill?.language ?? "id"}
+      active={view === "home"}
+      onAttempt={handleAttempt}
+    />
     {#if storageProblem}
       <p class="note">
         <span lang="id">Komputer ini belum bisa menyimpan latihan.</span>
         <span lang="en">This computer cannot save practice yet.</span>
       </p>
     {/if}
-    <p class="note">
-      <span lang="id"
-        >Mulai dari kalimat pendek. Jari di rumah: A S D F dan J K L ;</span
+    {#if !drill && (result || history.length > 0)}
+      <button
+        class="saved-link action-secondary no-print"
+        type="button"
+        onclick={openSaved}
       >
-      <span lang="en"
-        >Start with a short sentence. Home keys: A S D F and J K L ;</span
-      >
-    </p>
-  {:else if view.name === "drill"}
-    <DrillPad
-      prompt={view.prompt}
-      source={view.source}
-      language={view.language}
-      {onComplete}
-      onCancel={goHome}
-    />
-  {:else}
+        <span lang="id">{result ? "Kartu hasil" : "Lihat hasil terakhir"}</span>
+        <span lang="en">{result ? "Result card" : "See the last result"}</span>
+      </button>
+    {/if}
+  </div>
+  {#if view === "result" && result}
     <ResultScreen
-      attempt={view.attempt}
-      attemptNumber={view.attemptNumber}
-      saved={view.saved}
-      {onPractice}
+      attempt={result.attempt}
+      attemptNumber={result.attemptNumber}
+      saved={result.saved}
+      onPractice={startDrill}
       onHome={goHome}
     />
   {/if}

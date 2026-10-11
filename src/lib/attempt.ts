@@ -2,7 +2,7 @@ import type { LessonLanguage } from "./greeting";
 
 export type { LessonLanguage };
 
-export type AttemptSource = "starter" | "slow-keys";
+export type AttemptSource = "starter" | "lesson" | "slow-keys";
 
 export type Keystroke = {
   expected: string;
@@ -141,7 +141,9 @@ export function isAttempt(value: unknown): value is Attempt {
     attempt.id.length > 0 &&
     typeof attempt.createdAt === "number" &&
     (attempt.language === "id" || attempt.language === "en") &&
-    (attempt.source === "starter" || attempt.source === "slow-keys") &&
+    (attempt.source === "starter" ||
+      attempt.source === "lesson" ||
+      attempt.source === "slow-keys") &&
     typeof attempt.prompt === "string" &&
     typeof attempt.durationMs === "number" &&
     Array.isArray(attempt.keystrokes) &&
