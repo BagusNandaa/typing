@@ -1,5 +1,4 @@
 <script lang="ts">
-  import HandGuide from "./HandGuide.svelte";
   import Keyboard from "./Keyboard.svelte";
   import {
     advance,
@@ -135,7 +134,6 @@
   </p>
 
   <div class="stage">
-    <HandGuide activeFingers={fingerIds} />
     <Keyboard nextChar={expected} {done} onPress={press} />
   </div>
 

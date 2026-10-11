@@ -1,3 +1,5 @@
+import { fingersFor, keyFor, shiftPose } from "./layout";
+
 export type FingerId =
   | "left-pinky"
   | "left-ring"
@@ -16,16 +18,22 @@ export type FingerName = {
 };
 
 export const fingers: Record<FingerId, FingerName> = {
-  "left-pinky": { bahasa: "kelingking kiri", english: "left pinky" },
-  "left-ring": { bahasa: "manis kiri", english: "left ring finger" },
-  "left-middle": { bahasa: "tengah kiri", english: "left middle finger" },
-  "left-index": { bahasa: "telunjuk kiri", english: "left index finger" },
+  "left-pinky": { bahasa: "jari kelingking kiri", english: "left pinky" },
+  "left-ring": { bahasa: "jari manis kiri", english: "left ring finger" },
+  "left-middle": { bahasa: "jari tengah kiri", english: "left middle finger" },
+  "left-index": { bahasa: "jari telunjuk kiri", english: "left index finger" },
   "left-thumb": { bahasa: "ibu jari kiri", english: "left thumb" },
   "right-thumb": { bahasa: "ibu jari kanan", english: "right thumb" },
-  "right-index": { bahasa: "telunjuk kanan", english: "right index finger" },
-  "right-middle": { bahasa: "tengah kanan", english: "right middle finger" },
-  "right-ring": { bahasa: "manis kanan", english: "right ring finger" },
-  "right-pinky": { bahasa: "kelingking kanan", english: "right pinky" },
+  "right-index": {
+    bahasa: "jari telunjuk kanan",
+    english: "right index finger",
+  },
+  "right-middle": {
+    bahasa: "jari tengah kanan",
+    english: "right middle finger",
+  },
+  "right-ring": { bahasa: "jari manis kanan", english: "right ring finger" },
+  "right-pinky": { bahasa: "jari kelingking kanan", english: "right pinky" },
 };
 
 /** Left to right, as the child looks at their left hand. */
@@ -44,104 +52,7 @@ export const rightFingers = [
   "right-pinky",
 ] as const satisfies readonly FingerId[];
 
-export type KeyCap = {
-  char: string;
-  label: string;
-  fingers: readonly FingerId[];
-  home?: boolean;
-};
-
-export type KeyRow = {
-  id: "top" | "home" | "bottom" | "space";
-  keys: readonly KeyCap[];
-};
-
-function letter(char: string, finger: FingerId, home = false): KeyCap {
-  return {
-    char,
-    label: char.toUpperCase(),
-    fingers: [finger],
-    ...(home ? { home: true } : {}),
-  };
-}
-
-function mark(char: string, finger: FingerId): KeyCap {
-  return { char, label: char, fingers: [finger] };
-}
-
-export const rows: readonly KeyRow[] = [
-  {
-    id: "top",
-    keys: [
-      letter("q", "left-pinky"),
-      letter("w", "left-ring"),
-      letter("e", "left-middle"),
-      letter("r", "left-index"),
-      letter("t", "left-index"),
-      letter("y", "right-index"),
-      letter("u", "right-index"),
-      letter("i", "right-middle"),
-      letter("o", "right-ring"),
-      letter("p", "right-pinky"),
-    ],
-  },
-  {
-    id: "home",
-    keys: [
-      letter("a", "left-pinky"),
-      letter("s", "left-ring"),
-      letter("d", "left-middle"),
-      letter("f", "left-index", true),
-      letter("g", "left-index"),
-      letter("h", "right-index"),
-      letter("j", "right-index", true),
-      letter("k", "right-middle"),
-      letter("l", "right-ring"),
-      mark(";", "right-pinky"),
-    ],
-  },
-  {
-    id: "bottom",
-    keys: [
-      letter("z", "left-pinky"),
-      letter("x", "left-ring"),
-      letter("c", "left-middle"),
-      letter("v", "left-index"),
-      letter("b", "left-index"),
-      letter("n", "right-index"),
-      letter("m", "right-index"),
-      mark(",", "right-middle"),
-      mark(".", "right-ring"),
-      mark("/", "right-pinky"),
-    ],
-  },
-  {
-    id: "space",
-    keys: [
-      {
-        char: " ",
-        label: "Spasi",
-        // Either thumb may press the space bar.
-        fingers: ["left-thumb", "right-thumb"],
-      },
-    ],
-  },
-];
-
-const keysByChar = new Map<string, KeyCap>();
-for (const row of rows) {
-  for (const key of row.keys) {
-    keysByChar.set(key.char, key);
-  }
-}
-
-export function keyFor(char: string): KeyCap | undefined {
-  return keysByChar.get(char.toLowerCase());
-}
-
-export function fingersFor(char: string): readonly FingerId[] {
-  return keyFor(char)?.fingers ?? [];
-}
+export { fingersFor, keyFor, shiftPose };
 
 export function fingerCue(ids: readonly FingerId[]): {
   id: string;
@@ -165,6 +76,16 @@ export function fingerCue(ids: readonly FingerId[]): {
     };
   }
 
+  const second = ids[1];
+  if (second) {
+    const lead = fingers[first];
+    const follow = fingers[second];
+    return {
+      id: `Pakai ${lead.bahasa} dan ${follow.bahasa}.`,
+      en: `Use your ${lead.english} and your ${follow.english}.`,
+    };
+  }
+
   const name = fingers[first];
   return {
     id: `Pakai ${name.bahasa}.`,
@@ -173,6 +94,10 @@ export function fingerCue(ids: readonly FingerId[]): {
 }
 
 export function nextKeyCue(char: string): { id: string; en: string } | null {
+  if (shiftPose(char)) {
+    const letter = char.toUpperCase();
+    return { id: `${letter} dengan Shift`, en: `${letter} with Shift` };
+  }
   const key = keyFor(char);
   if (!key) return null;
   return {
@@ -230,6 +155,15 @@ export const lessons = [
     promptId: "Sekarang kata bahasa Inggris.",
     promptEn: "Now an English word.",
     text: "salad",
+  },
+  {
+    id: "halo",
+    language: "id",
+    nameId: "Huruf besar",
+    nameEn: "Capital",
+    promptId: "Huruf besar memakai Shift di tangan yang lain.",
+    promptEn: "A capital letter uses Shift on the other hand.",
+    text: "Halo",
   },
 ] as const;
 

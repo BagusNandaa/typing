@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { activePoseIds, board, keyAnchor, poseArt } from "./layout";
 import {
   advance,
   displayChar,
@@ -11,29 +12,113 @@ import {
   lessons,
   nextKeyCue,
   rightFingers,
-  rows,
   stepLabel,
   upcomingLesson,
 } from "./typing";
 
+function idsAt(y: number): string[] {
+  return board.keys.filter((key) => key.y === y).map((key) => key.id);
+}
+
 describe("qwerty layout", () => {
-  it("keeps the letter rows in QWERTY order", () => {
-    const typed = rows.map((row) => row.keys.map((key) => key.char).join(""));
-    expect(typed).toEqual(["qwertyuiop", "asdfghjkl;", "zxcvbnm,./", " "]);
+  it("keeps a full QWERTY board in order", () => {
+    const ys = [...new Set(board.keys.map((key) => key.y))].sort(
+      (a, b) => a - b,
+    );
+    expect(ys).toHaveLength(5);
+    const top = ys[0];
+    const upper = ys[1];
+    const home = ys[2];
+    const lower = ys[3];
+    const space = ys[4];
+    if (
+      top === undefined ||
+      upper === undefined ||
+      home === undefined ||
+      lower === undefined ||
+      space === undefined
+    ) {
+      throw new Error("Missing row");
+    }
+    expect(idsAt(top)).toEqual([
+      "`",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "0",
+      "-",
+      "=",
+      "backspace",
+    ]);
+    expect(idsAt(upper)).toEqual([
+      "tab",
+      "q",
+      "w",
+      "e",
+      "r",
+      "t",
+      "y",
+      "u",
+      "i",
+      "o",
+      "p",
+      "[",
+      "]",
+      "\\",
+    ]);
+    expect(idsAt(home)).toEqual([
+      "caps",
+      "a",
+      "s",
+      "d",
+      "f",
+      "g",
+      "h",
+      "j",
+      "k",
+      "l",
+      ";",
+      "'",
+      "enter",
+    ]);
+    expect(idsAt(lower)).toEqual([
+      "shift-left",
+      "z",
+      "x",
+      "c",
+      "v",
+      "b",
+      "n",
+      "m",
+      ",",
+      ".",
+      "/",
+      "shift-right",
+    ]);
+    expect(idsAt(space)).toEqual(["space"]);
+
+    const rights = ["backspace", "\\", "enter", "shift-right"].map((id) => {
+      const key = board.keys.find((item) => item.id === id);
+      if (!key) throw new Error(id);
+      return key.x + key.w;
+    });
+    expect(new Set(rights).size).toBe(1);
   });
 
   it("places each letter once and bumps only F and J", () => {
-    const letters = rows
-      .flatMap((row) => row.keys)
+    const letters = board.keys
       .map((key) => key.char)
       .filter((char) => /^[a-z]$/.test(char));
     expect(letters).toHaveLength(26);
     expect(new Set(letters).size).toBe(26);
 
-    const homes = rows
-      .flatMap((row) => row.keys)
-      .filter((key) => key.home)
-      .map((key) => key.char);
+    const homes = board.keys.filter((key) => key.home).map((key) => key.char);
     expect(homes).toEqual(["f", "j"]);
   });
 
@@ -45,8 +130,61 @@ describe("qwerty layout", () => {
     expect(fingersFor("j")).toEqual(["right-index"]);
     expect(fingersFor(";")).toEqual(["right-pinky"]);
     expect(fingersFor(" ")).toEqual(["left-thumb", "right-thumb"]);
-    expect(fingersFor("1")).toEqual([]);
+    expect(fingersFor("1")).toEqual(["left-pinky"]);
+    expect(fingersFor("A")).toEqual(["left-pinky", "right-pinky"]);
+    expect(fingersFor("H")).toEqual(["right-index", "left-pinky"]);
     expect(keyFor("Q")?.char).toBe("q");
+  });
+});
+
+describe("hand poses", () => {
+  it("draws one pose per key, plus both resting hands", () => {
+    const ids = new Set(poseArt.map((pose) => pose.id));
+    expect(ids.has("rest-left")).toBe(true);
+    expect(ids.has("rest-right")).toBe(true);
+    for (const key of board.keys) {
+      expect(ids.has(key.id), key.id).toBe(true);
+    }
+
+    const poseA = poseArt.find((pose) => pose.id === "a");
+    const keyA = board.keys.find((key) => key.id === "a");
+    const keyS = board.keys.find((key) => key.id === "s");
+    if (!poseA || !keyA || !keyS) throw new Error("Missing A pose");
+    const pinky = poseA.hands[0]?.strokes.find(
+      (stroke) => stroke.id === "left-pinky",
+    );
+    const ring = poseA.hands[0]?.strokes.find(
+      (stroke) => stroke.id === "left-ring",
+    );
+    expect(pinky?.hot).toBe(true);
+    expect(pinky?.x2).toBe(keyAnchor(keyA).x);
+    expect(pinky?.y2).toBe(keyAnchor(keyA).y);
+    expect(ring?.hot).toBe(false);
+    expect(ring?.x2).toBe(keyAnchor(keyS).x);
+    expect(ring?.y2).toBe(keyAnchor(keyS).y);
+
+    for (const pose of poseArt) {
+      for (const hand of pose.hands) {
+        expect(hand.palm.cx - hand.palm.rx).toBeGreaterThanOrEqual(0);
+        expect(hand.palm.cx + hand.palm.rx).toBeLessThanOrEqual(board.width);
+        expect(hand.heel.cy + hand.heel.ry).toBeLessThanOrEqual(board.height);
+        for (const stroke of hand.strokes) {
+          expect(stroke.x2).toBeGreaterThanOrEqual(0);
+          expect(stroke.x2).toBeLessThanOrEqual(board.width);
+          expect(stroke.y2).toBeGreaterThanOrEqual(0);
+          expect(stroke.y2).toBeLessThanOrEqual(board.height);
+        }
+      }
+    }
+  });
+
+  it("shows the reaching hand and rests the other one", () => {
+    expect(activePoseIds("")).toEqual(["rest-left", "rest-right"]);
+    expect(activePoseIds("a")).toEqual(["a", "rest-right"]);
+    expect(activePoseIds("j")).toEqual(["j", "rest-left"]);
+    expect(activePoseIds(" ")).toEqual(["space"]);
+    expect(activePoseIds("A")).toEqual(["a", "shift-right"]);
+    expect(activePoseIds("H")).toEqual(["h", "shift-left"]);
   });
 });
 
@@ -57,15 +195,24 @@ describe("cues", () => {
       en: "Rest your fingers on the home row.",
     });
     expect(fingerCue(["left-ring"])).toEqual({
-      id: "Pakai manis kiri.",
+      id: "Pakai jari manis kiri.",
       en: "Use your left ring finger.",
+    });
+    expect(fingerCue(["left-pinky", "right-pinky"])).toEqual({
+      id: "Pakai jari kelingking kiri dan jari kelingking kanan.",
+      en: "Use your left pinky and your right pinky.",
     });
     expect(fingerCue(["right-thumb", "left-thumb"]).id).toContain("ibu jari");
     expect(nextKeyCue("a")).toEqual({ id: "A", en: "A" });
     expect(nextKeyCue(" ")).toEqual({ id: "Spasi", en: "Space" });
-    expect(nextKeyCue("1")).toBeNull();
+    expect(nextKeyCue("1")).toEqual({ id: "1", en: "1" });
+    expect(nextKeyCue("H")).toEqual({
+      id: "H dengan Shift",
+      en: "H with Shift",
+    });
     expect(displayChar(" ")).toBe("spasi");
     expect(displayChar("a")).toBe("a");
+    expect(displayChar("H")).toBe("H");
   });
 
   it("counts the step the child is on", () => {
@@ -78,9 +225,11 @@ describe("lessons", () => {
   it("starts in Bahasa Indonesia and continues in English", () => {
     expect(lessonAt(0).language).toBe("id");
     expect(lessonAt(1).language).toBe("en");
+    expect(lessonAt(2).text).toBe("Halo");
     expect(lessonAt(9).id).toBe("home-row");
     expect(upcomingLesson(0)?.text).toBe("salad");
-    expect(upcomingLesson(1)).toBeUndefined();
+    expect(upcomingLesson(1)?.id).toBe("halo");
+    expect(upcomingLesson(2)).toBeUndefined();
 
     for (const lesson of lessons) {
       for (const char of lesson.text) {

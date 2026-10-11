@@ -1,63 +1,54 @@
 <script lang="ts">
-  import { leftFingers, rightFingers } from "./typing";
-  import type { FingerId } from "./typing";
+  import { board, poseArt } from "./layout";
 
-  let { activeFingers }: { activeFingers: readonly FingerId[] } = $props();
-
-  const hands = [
-    {
-      side: "left",
-      nameId: "Tangan kiri",
-      nameEn: "Left hand",
-      fingers: leftFingers,
-      thumb: "left-thumb",
-    },
-    {
-      side: "right",
-      nameId: "Tangan kanan",
-      nameEn: "Right hand",
-      fingers: rightFingers,
-      thumb: "right-thumb",
-    },
-  ] as const;
-
-  function shape(id: FingerId): string {
-    return id.slice(id.indexOf("-") + 1);
-  }
-
-  function lit(id: FingerId): boolean {
-    return activeFingers.includes(id);
-  }
+  let { activePoses }: { activePoses: readonly string[] } = $props();
 </script>
 
-<section class="hands-panel" aria-labelledby="hand-title">
-  <h3 id="hand-title">Panduan jari</h3>
-  <p class="secondary" lang="en">Hand guide</p>
-  <div class="hands" aria-hidden="true">
-    {#each hands as hand (hand.side)}
-      <div class="hand {hand.side}">
-        <p class="hand-name">
-          {hand.nameId}
-          <span class="secondary" lang="en">({hand.nameEn})</span>
-        </p>
-        <div class="hand-body">
-          <div class="fingers">
-            {#each hand.fingers as id (id)}
-              <div
-                class="finger {shape(id)}"
-                class:active={lit(id)}
-                data-finger={id}
-              ></div>
-            {/each}
-          </div>
-          <div class="palm"></div>
-          <div
-            class="thumb"
-            class:active={lit(hand.thumb)}
-            data-finger={hand.thumb}
-          ></div>
-        </div>
-      </div>
-    {/each}
-  </div>
-</section>
+<svg
+  class="hands-svg"
+  viewBox="0 0 {board.width} {board.height}"
+  aria-hidden="true"
+  focusable="false"
+  preserveAspectRatio="xMinYMin meet"
+>
+  {#each poseArt as pose (pose.id)}
+    <g
+      class="pose"
+      class:active={activePoses.includes(pose.id)}
+      data-pose={pose.id}
+    >
+      {#each pose.hands as hand (hand.side)}
+        <ellipse
+          class="hand-palm"
+          cx={hand.palm.cx}
+          cy={hand.palm.cy}
+          rx={hand.palm.rx}
+          ry={hand.palm.ry}
+        />
+        <ellipse
+          class="hand-heel"
+          cx={hand.heel.cx}
+          cy={hand.heel.cy}
+          rx={hand.heel.rx}
+          ry={hand.heel.ry}
+        />
+        {#each hand.strokes as stroke (stroke.id)}
+          <path class="hand-limb outline" d={stroke.d} />
+          <path class="hand-limb fill" d={stroke.d} />
+          <circle class="hand-pad" cx={stroke.x2} cy={stroke.y2} r="8" />
+          {#if stroke.hot}
+            <circle class="glow-ring" cx={stroke.x2} cy={stroke.y2} r="18" />
+            <circle
+              class="glow-core"
+              class:active={activePoses.includes(pose.id)}
+              data-finger={stroke.id}
+              cx={stroke.x2}
+              cy={stroke.y2}
+              r="8"
+            />
+          {/if}
+        {/each}
+      {/each}
+    </g>
+  {/each}
+</svg>

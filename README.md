@@ -10,12 +10,13 @@ The app should eventually be one self-contained HTML file that opens by double-c
 
 ## Keyboard practice
 
-The first drill is Bahasa Indonesia: `asdf jkl;` (home row, including space). The second is the English word `salad`.
+The first drill is Bahasa Indonesia: `asdf jkl;` (home row, including space). The second is the English word `salad`. The third is the capital word `Halo`, which lights the letter and the Shift key on the other hand.
 
 - The lit key uses the accent color, an ink outline, and the words "huruf berikutnya". F and J have a thick bottom border so the home bumps are not color alone.
-- The hand guide lights that finger and names it in Bahasa Indonesia, then English. Space lights both thumbs.
-- Instructions and keys are at least 20px. A highlight is a background and outline change only: no canvas, WebGL, shadow, filter, or animation, so a low-end laptop does not have to repaint effects.
-- On a 1366×768 screen the hand guide sits beside the keyboard, so the lit key and the finger are on screen together.
+- Two hands are drawn as one inline SVG and sit on top of the keyboard, semi-transparent, with fingertips resting on the home row. Only the pose for the next key is shown; the other hand stays in its resting pose. The reaching fingertip glows in the accent color. Space puts both thumbs on the space bar. A capital letter shows the letter hand and the opposite Shift hand together.
+- The coach names the finger in Bahasa Indonesia first (`jari kelingking kiri`, and the same pattern for the other fingers; thumbs are `ibu jari`), then English.
+- Instructions and keys are at least 20px. Paint stays cheap: no canvas, WebGL, shadow, or filter. The pose change is an opacity transition, and only when the system allows motion.
+- On a 1366×768 screen the hands, the lit key, and the home-row hint fit together. A 1280×720 window fits the same screen.
 
 `pnpm test` runs Vitest, including an axe-core check of the home screen.
 

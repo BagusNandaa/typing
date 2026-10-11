@@ -78,6 +78,13 @@ describe("display budget", () => {
       expect(stripped, banned).not.toContain(banned);
     }
 
+    expect(stripped).toContain(
+      "@media (prefers-reduced-motion: no-preference)",
+    );
+    expect(stripped).toMatch(
+      /prefers-reduced-motion:\s*no-preference[\s\S]*transition:\s*opacity 140ms linear/,
+    );
+
     for (const source of sources) {
       expect(source).not.toContain("<canvas");
       expect(source.toLowerCase()).not.toContain("webgl");
@@ -94,6 +101,8 @@ describe("display budget", () => {
         "#fffdf8",
         "#e4d9c8",
         "#0f6e6e",
+        "#f3d5c4",
+        "#8d7368",
       ]),
     );
   });
@@ -112,13 +121,23 @@ describe("display budget", () => {
   });
 });
 
+function currentChars(): string[] {
+  return [...document.querySelectorAll('[aria-current="true"]')].map(
+    (element) => {
+      if (!(element instanceof HTMLButtonElement)) {
+        throw new Error("Highlighted control is not a key");
+      }
+      const char = element.dataset.char;
+      if (char === undefined)
+        throw new Error("Highlighted key has no character");
+      return char;
+    },
+  );
+}
+
 function currentChar(): string {
-  const button = document.querySelector('[aria-current="true"]');
-  if (!(button instanceof HTMLButtonElement)) {
-    throw new Error("No highlighted key");
-  }
-  const char = button.dataset.char;
-  if (char === undefined) throw new Error("Highlighted key has no character");
+  const char = currentChars()[0];
+  if (char === undefined) throw new Error("No highlighted key");
   return char;
 }
 
@@ -203,11 +222,20 @@ describe("home screen", () => {
   it("passes axe with the next key and finger marked", async () => {
     mountApp();
     expect(document.querySelector("canvas")).toBeNull();
+    expect(document.querySelector("svg image")).toBeNull();
+    expect(document.querySelector("svg.hands-svg")).not.toBeNull();
     expect(document.querySelector("a.skip")?.getAttribute("href")).toBe(
       "#practice",
     );
     expect(currentChar()).toBe("a");
+    expect(
+      document.querySelector('g.pose.active[data-pose="a"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('g.pose.active[data-pose="rest-right"]'),
+    ).not.toBeNull();
     expect(activeFingerIds()).toEqual(["left-pinky"]);
+    expect(document.body.textContent).toContain("jari kelingking kiri");
     expect(
       document.querySelector('[aria-current="true"]')?.textContent,
     ).toContain("huruf berikutnya");
@@ -248,6 +276,11 @@ describe("home screen", () => {
       expect(currentChar()).toBe(char);
       if (char === " ") {
         expect(activeFingerIds()).toEqual(["left-thumb", "right-thumb"]);
+        expect(
+          [...document.querySelectorAll("g.pose.active")].map((pose) =>
+            pose.getAttribute("data-pose"),
+          ),
+        ).toEqual(["space"]);
       }
       await typeChar(char);
     }
@@ -268,6 +301,15 @@ describe("home screen", () => {
     expect(document.body.textContent).toContain("Bukan tombol itu");
 
     for (const char of "salad") await clickChar(char);
+    expect(document.body.textContent).toContain("Hebat!");
+    await clickButton("Lanjut");
+    expect(document.body.textContent).toContain("Huruf besar");
+    expect(currentChars()).toEqual(["h", "shift-left"]);
+    expect(activeFingerIds()).toEqual(["right-index", "left-pinky"]);
+    expect(document.body.textContent).toContain("jari telunjuk kanan");
+    await clickChar("shift-left");
+    expect(currentChars()).toEqual(["h", "shift-left"]);
+    for (const char of "halo") await clickChar(char);
     expect(document.body.textContent).toContain("Hebat!");
     await clickButton("Ulangi");
     expect(currentChar()).toBe("a");
