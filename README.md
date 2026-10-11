@@ -2,7 +2,7 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-This repository is the scaffold. Lessons, IndexedDB progress, and the result screen come later.
+The result card and per-attempt IndexedDB storage are in place. A full lesson sequence and the single-file build come later.
 
 ## Target
 
@@ -40,6 +40,16 @@ pnpm dev
 | `pnpm run test`      | Vitest, once             |
 | `pnpm run dev`       | Vite+ dev server         |
 | `pnpm run build`     | Vite+ production build   |
+
+## Result card
+
+Finish a practice and the card leads with **ketepatan** (accuracy) and stars. Slowest keys and key pairs come next, then kerataan (consistency). Kata per menit (WPM) stays on the card but small, so speed does not outrank accuracy.
+
+**Mulai latihan** types the starter sentence `aku suka nasi`. **Latih lagi** builds a short drill from that attempt's slowest keys and pairs. **Cetak kartu** prints the card; the buttons stay off the paper. **Lihat hasil terakhir** opens the newest saved attempt.
+
+Each finished practice is one record in IndexedDB database `mengetik-kids`, object store `attempts`, keyed by id. A new attempt is added. It does not overwrite an older one.
+
+The card is laid out for a 1366×768 screen. Visible text is 20px or larger. Bahasa Indonesia is first; English sits on the next line or beside it.
 
 ## CI
 

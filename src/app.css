@@ -11,8 +11,21 @@
   background: var(--paper);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
 }
 
 main {
@@ -25,7 +38,7 @@ main {
 .eyebrow {
   margin: 0;
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -43,17 +56,106 @@ h1 {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
-  font-size: 1.15rem;
+  font-size: 22px;
 }
 
 .note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 1.25rem 0 0;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.note [lang="en"] {
   color: var(--muted);
-  line-height: 1.5;
+}
+
+main.wide {
+  max-width: 1000px;
+  padding: 8px 16px 10px;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.action-primary,
+.action-secondary {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border-radius: 0.75rem;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.action-primary {
+  background: var(--accent);
+  color: var(--card);
+  border: 3px solid var(--accent);
+}
+
+.action-primary [lang="en"] {
+  color: var(--card);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.action-secondary {
+  background: var(--card);
+  color: var(--ink);
+  border: 3px solid var(--line);
+}
+
+.action-secondary [lang="en"] {
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.action-primary:focus-visible,
+.action-secondary:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 @media (max-width: 640px) {
   main {
     padding-top: 1.5rem;
+  }
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .result-card {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
