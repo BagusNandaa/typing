@@ -2,7 +2,7 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. Each finished practice is one IndexedDB attempt, and the result card leads with accuracy and stars. A longer lesson sequence and the single-file build come later.
+The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. Each finished practice is one IndexedDB attempt, and the result card leads with accuracy and stars. The typing engine scores that practice into accuracy, net and gross words per minute, consistency, and the slowest keys and key pairs. A longer lesson sequence and the single-file build come later.
 
 ## Target
 
@@ -62,6 +62,38 @@ Finishing `asdf jkl;`, `salad`, or `Halo` saves that practice and shows **Kartu 
 Each finished practice is one record in IndexedDB database `mengetik-kids`, object store `attempts`, keyed by id. A new attempt is added. It does not overwrite an older one.
 
 The card is laid out for a 1366×768 screen. Visible text is 20px or larger. Bahasa Indonesia is first; English sits on the next line or beside it.
+
+## Typing engine
+
+[`src/lib/engine.ts`](src/lib/engine.ts) is pure TypeScript, separate from the Svelte screens. It compares each key with the target character, counts errors and backspaces, and keeps the time of each tap. Those times are the same per-key and per-pair gaps the result card ranks.
+
+```ts
+let session = startSession("aku suka nasi", "no-mistakes");
+session = pressKey(session, "a", 0);
+session = pressBackspace(session, 200);
+const result = finishSession(session, {
+  language: "id",
+  source: "starter",
+  durationMs: 60_000,
+});
+```
+
+`startSession(prompt, mode)` begins a practice. `pressKey(session, key, atMs)` and `pressBackspace(session, atMs)` return the next session. `finishSession` builds an `Attempt` and the figures below.
+
+| Field                | Meaning                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `accuracyPercent`    | Correct taps divided by every tap, rounded.                                          |
+| `netWpm`             | Correct characters divided by 5, then by minutes. This is the card's kata per menit. |
+| `grossWpm`           | Every typed character divided by 5, then by minutes.                                 |
+| `consistencyPercent` | How even the gaps between correct taps are.                                          |
+| `slowestKeys`        | Up to three keys with the slowest average gap.                                       |
+| `slowestPairs`       | Up to three key pairs with the slowest average gap.                                  |
+
+`result.attempt` is the card's `Attempt`. `summarize(result.attempt)` in [`src/lib/attempt.ts`](src/lib/attempt.ts) reproduces the same accuracy, net WPM, consistency, and slowest keys. `summary.wpm` and `netWpm` match. Gross WPM is `grossWordsPerMinute` beside `wordsPerMinute`.
+
+A wrong key is stored, and the cursor stays on that character. Backspace steps back one accepted character and increases `backspaces`. Accuracy and both WPM figures count taps. The backspace total is its own field. A finished session stays finished.
+
+The mode defaults to `standard`. In `no-mistakes`, a word that took a wrong key is added again at the end of the text. The child types that copy later. A wrong key on the copy adds it once more. A clean copy is the end of that extra practice. The saved prompt stays the original sentence.
 
 ## CI
 
