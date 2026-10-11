@@ -1,4 +1,11 @@
 <script lang="ts">
+  import {
+    createAttempt,
+    type Attempt,
+    type AttemptSource,
+    type Keystroke,
+    type LessonLanguage,
+  } from "./attempt";
   import { readShowHands, writeShowHands } from "./handsSetting";
   import Keyboard from "./Keyboard.svelte";
   import {
@@ -14,21 +21,42 @@
     upcomingLesson,
   } from "./typing";
 
+  let {
+    prompt,
+    source = "lesson",
+    language = "id",
+    active = true,
+    onAttempt,
+  }: {
+    prompt?: string;
+    source?: AttemptSource;
+    language?: LessonLanguage;
+    active?: boolean;
+    onAttempt?: (attempt: Attempt) => void;
+  } = $props();
+
   let lessonIndex = $state(0);
   let cursor = $state(0);
   let wrong = $state(false);
   let showHands = $state(readShowHands());
   let actionButton = $state<HTMLButtonElement | null>(null);
+  let keystrokes = $state<Keystroke[]>([]);
+  let seenPrompt = $state<string | undefined>(undefined);
+  let startedAt = performance.now();
+  let reported = false;
 
   const lesson = $derived(lessonAt(lessonIndex));
   const upcoming = $derived(upcomingLesson(lessonIndex));
-  const expected = $derived(nextChar(lesson.text, cursor));
-  const done = $derived(isComplete(lesson.text, cursor));
+  const activeText = $derived(prompt ?? lesson.text);
+  const attemptLanguage = $derived(prompt ? language : lesson.language);
+  const attemptSource = $derived(prompt ? source : "lesson");
+  const expected = $derived(nextChar(activeText, cursor));
+  const done = $derived(isComplete(activeText, cursor));
   const fingerIds = $derived(fingersFor(expected));
   const finger = $derived(fingerCue(fingerIds));
   const cue = $derived(expected ? nextKeyCue(expected) : null);
-  const step = $derived(stepLabel(lesson.text, cursor));
-  const chars = $derived(lesson.text.split(""));
+  const step = $derived(stepLabel(activeText, cursor));
+  const chars = $derived(activeText.split(""));
   const nextKind = $derived(
     expected === " "
       ? { id: "Tombol berikutnya", en: "Next key" }
@@ -42,10 +70,26 @@
     writeShowHands(showHands);
   }
 
+  function resetDrill(): void {
+    lessonIndex = 0;
+    cursor = 0;
+    wrong = false;
+    keystrokes = [];
+    startedAt = performance.now();
+    reported = false;
+  }
+
   function press(char: string): void {
-    if (done) return;
-    const moved = advance(lesson.text, cursor, char);
-    if (moved === cursor) {
+    if (!active || done) return;
+    const moved = advance(activeText, cursor, char);
+    const correct = moved !== cursor;
+    keystrokes.push({
+      expected,
+      typed: char,
+      atMs: Math.max(0, Math.round(performance.now() - startedAt)),
+      correct,
+    });
+    if (!correct) {
       wrong = true;
       return;
     }
@@ -54,7 +98,7 @@
   }
 
   function onKeydown(event: KeyboardEvent): void {
-    if (done || event.repeat || event.isComposing) return;
+    if (!active || done || event.repeat || event.isComposing) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     const key = event.key;
@@ -74,20 +118,47 @@
   }
 
   function goNext(): void {
-    if (!upcoming) return;
+    if (!upcoming || prompt) return;
     lessonIndex += 1;
     cursor = 0;
     wrong = false;
+    keystrokes = [];
+    startedAt = performance.now();
+    reported = false;
   }
 
   function restart(): void {
+    if (prompt) return;
     lessonIndex = 0;
     cursor = 0;
     wrong = false;
+    keystrokes = [];
+    startedAt = performance.now();
+    reported = false;
   }
 
   $effect(() => {
-    if (!done) return;
+    if (!done || reported) return;
+    reported = true;
+    onAttempt?.(
+      createAttempt({
+        language: attemptLanguage,
+        source: attemptSource,
+        prompt: activeText,
+        durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
+        keystrokes,
+      }),
+    );
+  });
+
+  $effect(() => {
+    if (prompt === seenPrompt) return;
+    seenPrompt = prompt;
+    resetDrill();
+  });
+
+  $effect(() => {
+    if (!done || prompt) return;
     actionButton?.focus();
   });
 </script>
@@ -100,10 +171,26 @@
   tabindex="-1"
   aria-labelledby="practice-title"
 >
-  <h2 id="practice-title">Latihan jari · {lesson.nameId}</h2>
-  <p class="secondary" lang="en">Finger practice · {lesson.nameEn}</p>
-  <p class="prompt">{lesson.promptId}</p>
-  <p class="secondary" lang="en">{lesson.promptEn}</p>
+  <h2 id="practice-title">
+    {#if prompt}
+      Latih huruf lambat
+    {:else}
+      Latihan jari · {lesson.nameId}
+    {/if}
+  </h2>
+  <p class="secondary" lang="en">
+    {#if prompt}
+      Practice the slow keys
+    {:else}
+      Finger practice · {lesson.nameEn}
+    {/if}
+  </p>
+  <p class="prompt">
+    {prompt ? "Ketik huruf yang tadi lambat." : lesson.promptId}
+  </p>
+  <p class="secondary" lang="en">
+    {prompt ? "Type the keys that were slow." : lesson.promptEn}
+  </p>
 
   <p class="target">
     {#each chars as letter, index (index)}
@@ -159,7 +246,7 @@
     </span>
   </p>
 
-  {#if done}
+  {#if done && !prompt}
     <div class="actions">
       {#if upcoming}
         <button

@@ -2,7 +2,7 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. IndexedDB progress and the result screen come later.
+The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. Each finished practice is one IndexedDB attempt, and the result card leads with accuracy and stars. A longer lesson sequence and the single-file build come later.
 
 ## Target
 
@@ -52,6 +52,16 @@ pnpm dev
 | `pnpm run test`      | Vitest, once, including axe-core |
 | `pnpm run dev`       | Vite+ dev server                 |
 | `pnpm run build`     | Vite+ production build           |
+
+## Result card
+
+Finish a practice and the card leads with **ketepatan** (accuracy) and stars. Slowest keys and key pairs come next, then kerataan (consistency). Kata per menit (WPM) stays on the card but small, so speed does not outrank accuracy.
+
+Finishing `asdf jkl;`, `salad`, or `Halo` saves that practice and shows **Kartu hasil**. **Latih lagi** drills the slowest keys on the same keyboard. **Cetak kartu** prints the card; the buttons stay off the paper. **Lihat hasil terakhir** opens the newest saved attempt.
+
+Each finished practice is one record in IndexedDB database `mengetik-kids`, object store `attempts`, keyed by id. A new attempt is added. It does not overwrite an older one.
+
+The card is laid out for a 1366×768 screen. Visible text is 20px or larger. Bahasa Indonesia is first; English sits on the next line or beside it.
 
 ## CI
 

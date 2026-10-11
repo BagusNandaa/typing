@@ -13,6 +13,12 @@
   background: var(--paper);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: var(--paper);
@@ -24,13 +30,22 @@ body {
 button {
   font-family: inherit;
   font-size: 20px;
+  cursor: pointer;
 }
 
 main {
+  position: relative;
   box-sizing: border-box;
   max-width: 82rem;
   margin: 0 auto;
   padding: 0.35rem 1.25rem 0.3rem;
+}
+
+.saved-link {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 1;
 }
 
 .skip {
@@ -115,6 +130,81 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 0.75rem;
   font-size: 22px;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0.4rem 0 0;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.note [lang="en"] {
+  color: var(--muted);
+}
+
+main.wide {
+  max-width: 1000px;
+  padding: 8px 16px 10px;
+}
+
+.is-hidden {
+  display: none;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.action-primary,
+.action-secondary {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border-radius: 0.75rem;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.action-primary {
+  background: var(--accent);
+  color: var(--card);
+  border: 3px solid var(--accent);
+}
+
+.action-primary [lang="en"] {
+  color: var(--card);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.action-secondary {
+  background: var(--card);
+  color: var(--ink);
+  border: 3px solid var(--line);
+}
+
+.action-secondary [lang="en"] {
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.action-primary:focus-visible,
+.action-secondary:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .practice {
@@ -365,5 +455,29 @@ p.secondary,
 
   .glow {
     fill: Highlight;
+  }
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .result-card {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
