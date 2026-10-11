@@ -15,6 +15,7 @@ The first drill is Bahasa Indonesia: `asdf jkl;` (home row, including space). Th
 - The lit key uses the accent color, an ink outline, and the words "huruf berikutnya". F and J have a thick bottom border so the home bumps are not color alone.
 - The hand guide lights that finger and names it in Bahasa Indonesia, then English. Space lights both thumbs.
 - Instructions and keys are at least 20px. A highlight is a background and outline change only: no canvas, WebGL, shadow, filter, or animation, so a low-end laptop does not have to repaint effects.
+- On a 1366×768 screen the hand guide sits beside the keyboard, so the lit key and the finger are on screen together.
 
 `pnpm test` runs Vitest, including an axe-core check of the home screen.
 
