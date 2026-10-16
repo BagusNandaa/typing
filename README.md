@@ -2,11 +2,15 @@
 
 Offline typing tutor for Indonesian elementary school students. Bahasa Indonesia comes first, English second, on a QWERTY keyboard.
 
-The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. Each finished practice is one IndexedDB attempt, and the result card leads with accuracy and stars. The typing engine scores that practice into accuracy, net and gross words per minute, consistency, and the slowest keys and key pairs. A longer lesson sequence and the single-file build come later.
+The home screen practices the home row: an on-screen QWERTY keyboard highlights the next key, and the coach names the finger to use. A hand guide can be drawn over the keys, but that artwork is experimental and stays hidden until the learner turns on **Tampilkan tangan / Show hands**. Each finished practice is one IndexedDB attempt, and the result card leads with accuracy and stars. The typing engine scores that practice into accuracy, net and gross words per minute, consistency, and the slowest keys and key pairs. A longer lesson sequence comes later. `pnpm build` already writes one offline HTML file.
 
-## Target
+## Single-file build
 
-The app should eventually be one self-contained HTML file that opens by double-click on a low-end Windows PC, with no install and no network. That single-file build is the next task. It is not produced yet. `pnpm build` currently writes a normal Vite bundle to `dist/`.
+`pnpm build` writes one file, `dist/index.html`. JavaScript, CSS, the favicon, the keyboard, the hand guide, and the result card are inlined. The script is a classic script: Edge and Chrome do not load `<script type="module" src="...">` from `file://`. There is no worker, no font download, and no other file in `dist/`.
+
+Copy that file to a USB drive and double-click it. It opens in Edge or Chrome with Wi-Fi off.
+
+`pnpm test` rebuilds the file and fails if `dist` contains anything besides `index.html`, or if the HTML points at another file, a module script, a worker, or an `http`/`https` URL. DOM namespace names such as `http://www.w3.org/1999/xhtml` stay in the Svelte runtime; browsers do not fetch them. The same test then opens `dist/index.html` in headless Chrome over `file://` with DNS blocked and checks that both greetings render. CI installs Chrome for that step.
 
 ## Keyboard practice
 
@@ -44,14 +48,14 @@ pnpm dev
 
 ## Scripts
 
-| Script               | What it runs                     |
-| -------------------- | -------------------------------- |
-| `pnpm run lint`      | ESLint                           |
-| `pnpm run format`    | Prettier (writes files)          |
-| `pnpm run typecheck` | `svelte-check` and `tsc`         |
-| `pnpm run test`      | Vitest, once, including axe-core |
-| `pnpm run dev`       | Vite+ dev server                 |
-| `pnpm run build`     | Vite+ production build           |
+| Script               | What it runs                                           |
+| -------------------- | ------------------------------------------------------ |
+| `pnpm run lint`      | ESLint                                                 |
+| `pnpm run format`    | Prettier (writes files)                                |
+| `pnpm run typecheck` | `svelte-check` and `tsc`                               |
+| `pnpm run test`      | Vitest, once, including axe-core and the file:// check |
+| `pnpm run dev`       | Vite+ dev server                                       |
+| `pnpm run build`     | One self-contained `dist/index.html`                   |
 
 ## Result card
 
@@ -97,4 +101,4 @@ The mode defaults to `standard`. In `no-mistakes`, a word that took a wrong key 
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint, type check, and tests on push and pull request.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) installs Chrome, then runs lint, type check, and tests on push and pull request. The tests include the single-file check.

@@ -29,5 +29,15 @@ jobs:
       - name: Type check
         run: pnpm run typecheck
 
+      - name: Install Chrome
+        run: |
+          pnpm dlx @puppeteer/browsers install chrome@stable
+          chrome_bin="$(find "$HOME/.cache/puppeteer" -type f -path '*/chrome-linux64/chrome' -print -quit)"
+          if [ -z "$chrome_bin" ]; then
+            echo "Chrome binary not found after install" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$chrome_bin" >> "$GITHUB_ENV"
+
       - name: Test
         run: pnpm run test
