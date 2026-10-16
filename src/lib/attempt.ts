@@ -175,6 +175,14 @@ export function wordsPerMinute(
   return Math.round(correctCharacters / 5 / minutes);
 }
 
+/** Gross words per minute: every typed character divided by 5, then by minutes. */
+export function grossWordsPerMinute(
+  typedCharacters: number,
+  durationMs: number,
+): number {
+  return wordsPerMinute(typedCharacters, durationMs);
+}
+
 export function consistencyPercent(gapsMs: readonly number[]): number {
   if (gapsMs.length < 2) return 100;
   const mean = gapsMs.reduce((sum, gap) => sum + gap, 0) / gapsMs.length;
