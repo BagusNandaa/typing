@@ -15,6 +15,7 @@ import {
   starterPrompt,
   starsForAccuracy,
   summarize,
+  grossWordsPerMinute,
   wordsPerMinute,
   type Keystroke,
 } from "./attempt";
@@ -82,6 +83,14 @@ describe("words per minute", () => {
     expect(wordsPerMinute(13, 10_000)).toBe(16);
     expect(wordsPerMinute(0, 10_000)).toBe(0);
     expect(wordsPerMinute(13, 0)).toBe(0);
+  });
+});
+
+describe("gross words per minute", () => {
+  it("counts every typed character as five-character words", () => {
+    expect(grossWordsPerMinute(50, 60_000)).toBe(10);
+    expect(grossWordsPerMinute(0, 60_000)).toBe(0);
+    expect(grossWordsPerMinute(13, 0)).toBe(0);
   });
 });
 
