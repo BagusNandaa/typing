@@ -63,7 +63,7 @@ Finish a practice and the card leads with **ketepatan** (accuracy) and stars. Sl
 
 Finishing `asdf jkl;`, `salad`, or `Halo` saves that practice and shows **Kartu hasil**. **Latih lagi** drills the slowest keys on the same keyboard. **Cetak kartu** prints the card; the buttons stay off the paper. **Lihat hasil terakhir** opens the newest saved attempt.
 
-Each finished practice is one record in IndexedDB database `mengetik-kids`, object store `attempts`, keyed by id. A new attempt is added. It does not overwrite an older one.
+Each finished practice is one record in IndexedDB database `mengetik-kids`, object store `attempts`, keyed by id. A new attempt is added. It does not overwrite an older one. The same database is opened by [`src/lib/storage`](src/lib/storage/index.ts). See [Storage](#storage).
 
 The card is laid out for a 1366×768 screen. Visible text is 20px or larger. Bahasa Indonesia is first; English sits on the next line or beside it.
 
@@ -98,6 +98,51 @@ const result = finishSession(session, {
 A wrong key is stored, and the cursor stays on that character. Backspace steps back one accepted character and increases `backspaces`. Accuracy and both WPM figures count taps. The backspace total is its own field. A finished session stays finished.
 
 The mode defaults to `standard`. In `no-mistakes`, a word that took a wrong key is added again at the end of the text. The child types that copy later. A wrong key on the copy adds it once more. A clean copy is the end of that extra practice. The saved prompt stays the original sentence.
+
+## Storage
+
+`src/lib/storage` is the IndexedDB layer for kids, attempts, and custom texts. It opens the database `mengetik-kids` with the browser's own IndexedDB and does not use the network. Edge and Chrome provide IndexedDB for a page opened with `file://`, so the single HTML file can keep progress on a school PC with no install and no connection.
+
+Schema changes are numbered migrations:
+
+| Version | What it does                                                                                                                                                                                                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1       | Creates `attempts`, keyed by id, with a `createdAt` index. This is the practice log the result card already uses.                                                                                                               |
+| 2       | Adds `kids` and `customTexts`, plus a `byKidId` index on attempts and custom texts. A practice record saved before this version keeps its keystrokes and gains `schemaVersion`, accuracy, words per minute, and per-key counts. |
+
+`schemaVersion` on a record is the payload version (currently `1`). It is not the database version. Each attempt stays its own row, with a UUID, so a later sync can upload it without folding history together. Accuracy and words per minute use the typing engine's figures: correct taps divided by every tap, and net kata per menit.
+
+| Store         | Fields                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `kids`        | `id`, `name`, `createdAt`, `schemaVersion`                                                            |
+| `attempts`    | `id` (UUID), `kidId`, `lessonId`, `accuracy` (0–100), `wpm`, `keyStats`, `createdAt`, `schemaVersion` |
+| `customTexts` | `id`, `kidId`, `title`, `body` (500 characters max), `createdAt`, `schemaVersion`                     |
+
+`createdAt` is Unix epoch milliseconds. `keyStats` maps a key such as `"a"` or `" "` to `{ correct, incorrect }`. The 500 character cap uses `string.length` (UTF-16 code units).
+
+The practice screen still saves the keystroke log through `addAttempt`. It does not ask which child is typing yet. Profiles, sync-ready attempts, and custom texts go through `openStorage()`:
+
+```ts
+import { openStorage } from "./lib/storage";
+
+const storage = await openStorage();
+const kid = await storage.createKid({ name: "Sari" });
+await storage.createAttempt({
+  kidId: kid.id,
+  lessonId: "home-row",
+  accuracy: 96,
+  wpm: 14,
+  keyStats: { a: { correct: 12, incorrect: 1 } },
+});
+await storage.createCustomText({
+  kidId: kid.id,
+  title: "Nama",
+  body: "nama saya sari",
+});
+storage.close();
+```
+
+`pnpm test` runs this module against fake-indexeddb, including an upgrade from a version 1 database.
 
 ## CI
 

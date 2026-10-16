@@ -1,9 +1,8 @@
 import { isAttempt, type Attempt } from "./attempt";
+import { DB_NAME, STORE_ATTEMPTS, openDatabase } from "./storage";
 
-export const ATTEMPTS_DB_NAME = "mengetik-kids";
-export const ATTEMPTS_STORE = "attempts";
-
-const DB_VERSION = 1;
+export const ATTEMPTS_DB_NAME = DB_NAME;
+export const ATTEMPTS_STORE = STORE_ATTEMPTS;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -56,17 +55,14 @@ function openAttemptsDb(): Promise<IDBDatabase> {
 }
 
 function openFresh(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(ATTEMPTS_DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(ATTEMPTS_STORE)) {
-        const store = db.createObjectStore(ATTEMPTS_STORE, { keyPath: "id" });
-        store.createIndex("createdAt", "createdAt");
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(asError(request.error));
+  return openDatabase({ name: ATTEMPTS_DB_NAME }).then((db) => {
+    db.addEventListener("versionchange", () => {
+      dbPromise = null;
+    });
+    db.addEventListener("close", () => {
+      dbPromise = null;
+    });
+    return db;
   });
 }
 
