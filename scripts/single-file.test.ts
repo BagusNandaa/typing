@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import puppeteer from "puppeteer-core";
+import puppeteer, { type Page } from "puppeteer-core";
 import { describe, expect, it } from "vitest";
 import { findHtmlProblems, listDistFiles } from "./single-file.ts";
 
@@ -88,6 +88,9 @@ describe("production file", () => {
     expect(findHtmlProblems(html)).toEqual([]);
     expect(html).toContain("Halo! Ayo belajar mengetik.");
     expect(html).toContain("Hi! Let's learn to type.");
+    expect(html).toContain("Siapa yang mau mengetik?");
+    expect(html).toContain("Who's typing?");
+    expect(html).toContain("Tambah anak");
     expect(html).toContain("huruf berikutnya");
     expect(html).toContain("Tampilkan tangan");
     expect(html).toContain("Kartu hasil");
@@ -116,6 +119,27 @@ describe("production file", () => {
         waitUntil: "load",
         timeout: 15_000,
       });
+      const picker = await page.$eval("body", (body) => body.innerText);
+      expect(picker).toContain("Siapa yang mau mengetik?");
+      expect(picker).toContain("Who's typing?");
+      expect(picker).toContain("Tambah anak");
+      expect(picker).toContain("Add kid");
+
+      await clickButton(page, "Tambah anak");
+      await page.waitForSelector("#profile-name");
+      await page.type("#profile-name", "Sari");
+      await clickButton(page, "Simpan");
+      await page.waitForFunction(
+        (needle) => {
+          const scope = globalThis as {
+            document?: { body?: { innerText?: string } };
+          };
+          return scope.document?.body?.innerText?.includes(needle) ?? false;
+        },
+        { timeout: 15_000 },
+        "Halo! Ayo belajar mengetik.",
+      );
+
       const text = await page.$eval("body", (body) => body.innerText);
       const probe = await page.evaluate(async () => {
         try {
@@ -127,6 +151,7 @@ describe("production file", () => {
       });
       expect(text).toContain("Halo! Ayo belajar mengetik.");
       expect(text).toContain("Hi! Let's learn to type.");
+      expect(text).toContain("Sari");
       expect(text).toContain("Mengetik Kids");
       expect(text).toContain("huruf berikutnya");
       expect(text).toContain("Tampilkan tangan");
@@ -137,6 +162,24 @@ describe("production file", () => {
     }
   }, 60_000);
 });
+
+async function clickButton(page: Page, label: string): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < 15_000) {
+    const buttons = await page.$$("button");
+    for (const button of buttons) {
+      const text = await button.evaluate(
+        (element) => element.textContent ?? "",
+      );
+      if (text.includes(label)) {
+        await button.click();
+        return;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`No button containing ${label}`);
+}
 
 function chromePath(): string {
   const fromEnv = process.env["CHROME_PATH"];

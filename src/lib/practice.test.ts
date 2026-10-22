@@ -5,6 +5,7 @@ import axe from "axe-core";
 import { mount, tick, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import App from "../App.svelte";
+import { createLocalProfileStore } from "./profiles";
 import handSource from "./HandGuide.svelte?raw";
 import keyboardSource from "./Keyboard.svelte?raw";
 import practiceSource from "./Practice.svelte?raw";
@@ -185,14 +186,31 @@ async function clickChar(char: string): Promise<void> {
 }
 
 async function clickButton(label: string): Promise<void> {
-  const button = [...document.querySelectorAll("button")].find((element) =>
-    element.textContent?.includes(label),
-  );
-  if (!(button instanceof HTMLButtonElement)) {
-    throw new Error(`No button containing ${label}`);
+  const started = Date.now();
+  while (Date.now() - started < 1500) {
+    const button = [...document.querySelectorAll("button")].find((element) =>
+      element.textContent?.includes(label),
+    );
+    if (button instanceof HTMLButtonElement) {
+      button.click();
+      await tick();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 15));
   }
-  button.click();
-  await tick();
+  throw new Error(`No button containing ${label}`);
+}
+
+async function waitForText(text: string): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < 1500) {
+    if (document.body.textContent?.includes(text)) {
+      await tick();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 15));
+  }
+  throw new Error(`Timed out waiting for ${text}`);
 }
 
 function installCss(): void {
@@ -235,8 +253,28 @@ describe("home screen", () => {
     };
   }
 
-  it("passes axe with the next key and finger marked", async () => {
+  async function enterPractice(): Promise<void> {
+    const store = createLocalProfileStore({
+      now: () => 1_700_000_000_000,
+      createId: () => "kid-sari",
+    });
+    const existing = await store.list();
+    if (!existing.some((profile) => profile.name === "Sari")) {
+      const kid = await store.create({
+        name: "Sari",
+        avatar: "cat",
+        color: "teal",
+      });
+      await store.setActiveId(kid.id);
+    }
     mountApp();
+    await waitForText("Sari");
+    await clickButton("Sari");
+    await waitForText("Tampilkan tangan");
+  }
+
+  it("passes axe with the next key and finger marked", async () => {
+    await enterPractice();
     expect(document.querySelector("canvas")).toBeNull();
     expect(document.querySelector("svg image")).toBeNull();
     expect(handsToggle().checked).toBe(false);
@@ -273,7 +311,7 @@ describe("home screen", () => {
   });
 
   it("remembers when the experimental hands are turned on", async () => {
-    mountApp();
+    await enterPractice();
     expect(document.querySelector("svg.hands-svg")).toBeNull();
 
     await setHands(true);
@@ -288,7 +326,7 @@ describe("home screen", () => {
     await expectAccessible();
 
     await cleanup?.();
-    mountApp();
+    await enterPractice();
     expect(handsToggle().checked).toBe(true);
     expect(document.querySelector("svg.hands-svg")).not.toBeNull();
 
@@ -300,7 +338,7 @@ describe("home screen", () => {
   });
 
   it("walks the Indonesian home row, then the English word", async () => {
-    mountApp();
+    await enterPractice();
     await setHands(true);
     expect(document.body.textContent).toContain("Tekan tombol yang menyala");
     expect(
