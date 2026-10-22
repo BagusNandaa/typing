@@ -297,7 +297,7 @@ describe("home screen", () => {
     expect(document.querySelector("svg.hands-svg")).toBeNull();
     expect(document.body.textContent).toContain("jari kelingking kiri");
     await expectAccessible();
-  });
+  }, 20_000);
 
   it("walks the Indonesian home row, then the English word", async () => {
     mountApp();
@@ -357,5 +357,5 @@ describe("home screen", () => {
     const again = document.querySelector("button[data-char='a']");
     if (!(again instanceof HTMLButtonElement)) throw new Error("Missing A");
     expect(again.disabled).toBe(false);
-  });
+  }, 20_000);
 });

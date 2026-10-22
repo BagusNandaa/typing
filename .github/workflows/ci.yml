@@ -31,9 +31,12 @@ jobs:
 
       - name: Install Chrome
         run: |
-          pnpm dlx @puppeteer/browsers install chrome@stable
-          chrome_bin="$(find "$HOME/.cache/puppeteer" -type f -path '*/chrome-linux64/chrome' -print -quit)"
-          if [ -z "$chrome_bin" ]; then
+          # @puppeteer/browsers installs into the working directory unless --path is set.
+          cache_dir="${HOME}/.cache/puppeteer"
+          mkdir -p "$cache_dir"
+          pnpm dlx @puppeteer/browsers install chrome@stable --path "$cache_dir"
+          chrome_bin="$(find "$cache_dir" -type f -path '*/chrome-linux64/chrome' -print -quit)"
+          if [ ! -x "$chrome_bin" ]; then
             echo "Chrome binary not found after install" >&2
             exit 1
           fi
