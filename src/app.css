@@ -41,11 +41,23 @@ main {
   padding: 0.35rem 1.25rem 0.3rem;
 }
 
-.saved-link {
-  position: absolute;
-  top: 8px;
-  right: 16px;
-  z-index: 1;
+.mast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.who-name {
+  overflow-wrap: anywhere;
 }
 
 .skip {
@@ -199,6 +211,10 @@ main.wide {
   color: var(--muted);
   font-size: 20px;
   font-weight: 600;
+}
+
+.who {
+  align-items: center;
 }
 
 .action-primary:focus-visible,
